@@ -25,9 +25,9 @@ pipeline {
 				echo "Build URL: $env.BUILD_URL"
 			}
 		}
-		stage('Build') {
+		stage('Compile') {
 			steps {
-				echo "Build"
+				echo "Compile"
 				sh "mvn clean compile"
 			}	
 		}
@@ -42,6 +42,30 @@ pipeline {
 				echo "Test"
 				sh "mvn failsafe:integration-test failsafe:verify"
 			}	
+		}
+		stage('Package') {
+			steps {
+				echo "Package"
+				sh "mvn package -DskipTests"
+			}	
+		}
+		stage('Build Docker image') {
+			steps {
+				script {
+					dockerImage = docker.build {"sanjeetkhanuja/currency-exchange-devops:${env.BUILD_TAG}")
+				}
+			}
+		}
+		
+		stage('Push Docker image') {
+			steps {
+				script {
+					docker.with Registry('', 'dockerHub') {
+						dockerImage.push();
+						dockerImage.push('latest');
+					}	
+				}
+			}
 		}
 	} 
 	post {
